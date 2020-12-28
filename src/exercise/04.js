@@ -4,34 +4,10 @@
 import * as React from 'react'
 import {useLocalStorageState} from '../utils'
 
-function Board() {
-  const getDefaultSquares = () => Array(9).fill(null)
-  const [squares, setSquares] = useLocalStorageState(
-    'squares',
-    getDefaultSquares,
-  )
-
-  const nextValue = calculateNextValue(squares)
-  const winner = calculateWinner(squares)
-  const status = calculateStatus(winner, squares, nextValue)
-
-  function selectSquare(square) {
-    if (winner != null || squares[square] != null) {
-      return
-    }
-
-    const squaresCopy = [...squares]
-    squaresCopy[square] = nextValue
-    setSquares(squaresCopy)
-  }
-
-  function restart() {
-    setSquares(getDefaultSquares())
-  }
-
+function Board({onClick, squares}) {
   function renderSquare(i) {
     return (
-      <button className="square" onClick={() => selectSquare(i)}>
+      <button className="square" onClick={() => onClick(i)}>
         {squares[i]}
       </button>
     )
@@ -39,7 +15,6 @@ function Board() {
 
   return (
     <div>
-      <div className="status">{status}</div>
       <div className="board-row">
         {renderSquare(0)}
         {renderSquare(1)}
@@ -55,18 +30,89 @@ function Board() {
         {renderSquare(7)}
         {renderSquare(8)}
       </div>
-      <button className="restart" onClick={restart}>
-        restart
-      </button>
     </div>
   )
 }
 
+function Move({move, moveNumber, currentMove, setCurrentMove}) {
+  if (move == null) {
+    return
+  }
+
+  let text
+  if (moveNumber === 0) {
+    text = 'Go to game start'
+  } else if (moveNumber > 0) {
+    text = `Go to move #${moveNumber}`
+  }
+
+  const isCurrent = moveNumber === currentMove
+  if (text != null && isCurrent) {
+    text += ' (current)'
+  }
+
+  return (
+    <li>
+      <button onClick={() => setCurrentMove(moveNumber)} disabled={isCurrent}>
+        {text}
+      </button>
+    </li>
+  )
+}
+
 function Game() {
+  const getDefaultSquareHistory = () => [Array(9).fill(null)]
+  const [moves, setMoves] = useLocalStorageState(
+    'moves',
+    getDefaultSquareHistory,
+  )
+  const [currentMove, setCurrentMove] = React.useState(0)
+
+  const currentSquares = moves[currentMove]
+  const nextValue = calculateNextValue(currentSquares)
+  const winner = calculateWinner(currentSquares)
+  const status = calculateStatus(winner, currentSquares, nextValue)
+
+  function selectSquare(square) {
+    if (winner != null || currentSquares[square] != null) {
+      return
+    }
+
+    const squaresCopy = [...currentSquares]
+    const nextMove = currentMove + 1
+    squaresCopy[square] = nextValue
+
+    const newMoves = [...moves.slice(0, nextMove), squaresCopy]
+    setMoves(newMoves)
+    setCurrentMove(nextMove)
+  }
+
+  function restart() {
+    setMoves(getDefaultSquareHistory())
+    setCurrentMove(0)
+  }
+
   return (
     <div className="game">
       <div className="game-board">
-        <Board />
+        <Board onClick={selectSquare} squares={currentSquares} />
+        <button className="restart" onClick={restart}>
+          restart
+        </button>
+      </div>
+      <div className="game-info">
+        <div>{status}</div>
+        <ol>
+          {moves.map((move, i) => (
+            <Move
+              key={i}
+              move={move}
+              moveNumber={i}
+              currentMove={currentMove}
+              setCurrentMove={setCurrentMove}
+            />
+          ))}
+        </ol>
       </div>
     </div>
   )
