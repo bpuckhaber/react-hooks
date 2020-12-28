@@ -5,7 +5,17 @@ import * as React from 'react'
 
 function Board() {
   const getDefaultSquares = () => Array(9).fill(null)
-  const [squares, setSquares] = React.useState(getDefaultSquares)
+  const [squares, setSquares] = React.useState(() => {
+    let defaultSquares
+    try {
+      ;({squares: defaultSquares} = JSON.parse(
+        window.localStorage.getItem('squares'),
+      ))
+    } catch {
+      defaultSquares = getDefaultSquares()
+    }
+    return defaultSquares
+  })
 
   const nextValue = calculateNextValue(squares)
   const winner = calculateWinner(squares)
@@ -32,6 +42,15 @@ function Board() {
       </button>
     )
   }
+
+  React.useEffect(() => {
+    window.localStorage.setItem('squares', JSON.stringify({squares}))
+    return () => {
+      try {
+        window.localStorage.removeItem('squares')
+      } catch {}
+    }
+  }, [squares])
 
   return (
     <div>
