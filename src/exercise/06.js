@@ -9,24 +9,43 @@ import {
   PokemonDataView,
 } from '../pokemon'
 
+const Status = Object.freeze({
+  IDLE: 'IDLE',
+  PENDING: 'PENDING',
+  RESOLVED: 'RESOLVED',
+  REJECTED: 'REJECTED',
+})
+
 function PokemonInfo({pokemonName}) {
   const [pokemon, setPokemon] = React.useState()
   const [error, setError] = React.useState(null)
+  const [status, setStatus] = React.useState(Status.IDLE)
 
   React.useEffect(() => {
     if (pokemonName) {
-      setPokemon(null)
+      setStatus(Status.PENDING)
 
       fetchPokemon(pokemonName)
         .then(pokemonData => {
-          setError(null)
           setPokemon(pokemonData)
+          setStatus(Status.RESOLVED)
         })
-        .catch(err => setError(err))
+        .catch(err => {
+          setError(err)
+          setStatus(Status.REJECTED)
+        })
     }
   }, [pokemonName])
 
-  if (error) {
+  if (status === Status.IDLE) {
+    return 'Submit a pokemon'
+  }
+
+  if (status === Status.PENDING) {
+    return <PokemonInfoFallback name={pokemonName} />
+  }
+
+  if (status === Status.REJECTED) {
     return (
       <div role="alert">
         There was an error:{' '}
@@ -35,15 +54,11 @@ function PokemonInfo({pokemonName}) {
     )
   }
 
-  if (!pokemonName) {
-    return 'Submit a pokemon'
+  if (status === Status.RESOLVED) {
+    return <PokemonDataView pokemon={pokemon} />
   }
 
-  if (!pokemon) {
-    return <PokemonInfoFallback name={pokemonName} />
-  }
-
-  return <PokemonDataView pokemon={pokemon} />
+  throw new Error('Unexpected error occurred')
 }
 
 function App() {
