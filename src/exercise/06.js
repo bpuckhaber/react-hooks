@@ -17,22 +17,22 @@ const Status = Object.freeze({
 })
 
 function PokemonInfo({pokemonName}) {
-  const [pokemon, setPokemon] = React.useState()
-  const [error, setError] = React.useState(null)
-  const [status, setStatus] = React.useState(Status.IDLE)
+  const [state, setState] = React.useState(() => ({
+    status: Status.IDLE,
+  }))
+
+  const {pokemon, status, error} = state
 
   React.useEffect(() => {
     if (pokemonName) {
-      setStatus(Status.PENDING)
+      setState({status: Status.PENDING})
 
       fetchPokemon(pokemonName)
         .then(pokemonData => {
-          setPokemon(pokemonData)
-          setStatus(Status.RESOLVED)
+          setState({status: Status.RESOLVED, pokemon: pokemonData})
         })
         .catch(err => {
-          setError(err)
-          setStatus(Status.REJECTED)
+          setState({error: err, status: Status.REJECTED})
         })
     }
   }, [pokemonName])
